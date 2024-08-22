@@ -1,0 +1,16 @@
+// comment
+
+age := 1
+name := "Monkey"
+array := [1, 2, 3, 4, 5]
+map := {name: "thorsten", age: 28}
+
+fn add(a: int, b: int) int {
+  c := a + b
+  return c
+}
+
+add := fn(a: int, b: int) int {
+  c := a + b
+  return c
+}

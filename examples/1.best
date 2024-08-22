@@ -1,0 +1,8 @@
+five := 5
+ten := 10
+
+fn add(x, y) {
+  x + y
+}
+
+result := add(five, ten)
