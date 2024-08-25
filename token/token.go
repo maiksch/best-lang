@@ -9,7 +9,6 @@ const (
 	INTEGER    = "INTEGER"
 
 	// Symbols
-	COLON   = ":"
 	ASSIGN  = "="
 	LPAREN  = "("
 	RPAREN  = ")"
@@ -28,9 +27,9 @@ const (
 	// Two Symbol Tokens
 	EQUAL     = "=="
 	NOT_EQUAL = "!="
-	DECLARE   = ":="
 
 	// Keywords
+	VARIABLE = "VAR"
 	FUNCTION = "FN"
 	TRUE     = "TRUE"
 	FALSE    = "FALSE"
@@ -45,7 +44,6 @@ type Token struct {
 }
 
 var Symbols = map[byte]TokenType{
-	':':  COLON,
 	'=':  ASSIGN,
 	'(':  LPAREN,
 	')':  RPAREN,
@@ -63,6 +61,7 @@ var Symbols = map[byte]TokenType{
 }
 
 var keywords = map[string]TokenType{
+	"var":    VARIABLE,
 	"fn":     FUNCTION,
 	"true":   TRUE,
 	"false":  FALSE,

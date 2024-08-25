@@ -7,7 +7,7 @@ type Lexer struct {
 	position int
 }
 
-func NewLexer(input string) *Lexer {
+func New(input string) *Lexer {
 	return &Lexer{
 		input:    input,
 		position: -1,
@@ -88,14 +88,11 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	if t, ok := token.Symbols[ch]; ok {
+		// Two symbol tokens
 		switch t {
-		case token.COLON:
-			if peek := l.peekChar(); peek == '=' {
-				l.readChar()
-				return token.Token{Type: token.DECLARE, Literal: token.DECLARE}
-			}
 		case token.ASSIGN:
 			if peek := l.peekChar(); peek == '=' {
+				// Equal operator ==
 				l.readChar()
 				return token.Token{Type: token.EQUAL, Literal: token.EQUAL}
 			}
@@ -104,9 +101,10 @@ func (l *Lexer) NextToken() token.Token {
 				l.readChar()
 				return token.Token{Type: token.NOT_EQUAL, Literal: token.NOT_EQUAL}
 			}
-		default:
-			return token.Token{Type: t, Literal: string(ch)}
 		}
+
+		// One symbol tokens
+		return token.Token{Type: t, Literal: string(ch)}
 	}
 
 	if l.isLetter(ch) {

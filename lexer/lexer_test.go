@@ -1,8 +1,9 @@
-package lexer
+package lexer_test
 
 import (
 	"testing"
 
+	"github.com/maiksch/best-lang/lexer"
 	"github.com/maiksch/best-lang/token"
 )
 
@@ -27,22 +28,24 @@ func TestKeywords(t *testing.T) {
 }
 
 func TestBasicProgram(t *testing.T) {
-	input := `five := 5
-ten := 10
+	input := `var five = 5
+var ten = 10
 
 fn add(x, y) {
   return x + y
 }
 
-result := add(five, ten)`
+var result = add(five, ten)`
 
 	tests := []expectation{
+		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "five"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.INTEGER, "5"},
 		{token.NEWLINE, "\n"},
+		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "ten"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.INTEGER, "10"},
 		{token.NEWLINE, "\n"},
 		{token.NEWLINE, "\n"},
@@ -63,8 +66,9 @@ result := add(five, ten)`
 		{token.RBRACE, "}"},
 		{token.NEWLINE, "\n"},
 		{token.NEWLINE, "\n"},
+		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "result"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.IDENTIFIER, "add"},
 		{token.LPAREN, "("},
 		{token.IDENTIFIER, "five"},
@@ -77,12 +81,13 @@ result := add(five, ten)`
 	runAndExpect(t, input, tests)
 }
 
-func TestAssignment(t *testing.T) {
-	input := `five := 5`
+func TestWhitespace(t *testing.T) {
+	input := `var   	five     =   	5`
 
 	tests := []expectation{
+		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "five"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.INTEGER, "5"},
 		{token.EOF, ""},
 	}
@@ -90,12 +95,13 @@ func TestAssignment(t *testing.T) {
 	runAndExpect(t, input, tests)
 }
 
-func TestWhitespace(t *testing.T) {
-	input := `five     :=   	5`
+func TestAssignment(t *testing.T) {
+	input := `var five = 5`
 
 	tests := []expectation{
+		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "five"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.INTEGER, "5"},
 		{token.EOF, ""},
 	}
@@ -104,7 +110,7 @@ func TestWhitespace(t *testing.T) {
 }
 
 func TestSymbols(t *testing.T) {
-	input := `+-/*():={},==<>!=
+	input := `+-/*()={},==<>!=
 	`
 
 	tests := []expectation{
@@ -114,7 +120,7 @@ func TestSymbols(t *testing.T) {
 		{token.STAR, "*"},
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
-		{token.DECLARE, ":="},
+		{token.ASSIGN, "="},
 		{token.LBRACE, "{"},
 		{token.RBRACE, "}"},
 		{token.KOMMA, ","},
@@ -130,7 +136,7 @@ func TestSymbols(t *testing.T) {
 }
 
 func runAndExpect(t *testing.T, input string, tests []expectation) {
-	l := NewLexer(input)
+	l := lexer.New(input)
 
 	for _, test := range tests {
 		token := l.NextToken()
