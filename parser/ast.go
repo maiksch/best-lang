@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/maiksch/best-lang/token"
 )
@@ -65,11 +66,24 @@ func (i *IntegerLiteral) expressionNode()      {}
 func (i *IntegerLiteral) TokenLiteral() string { return i.Token.Literal }
 func (i *IntegerLiteral) String() string       { return i.Token.Literal }
 
-// Prefixed Expression
+// Boolean Literal Expression
+
+type BooleanLiteral struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *BooleanLiteral) expressionNode()      {}
+func (b *BooleanLiteral) TokenLiteral() string { return b.Token.Literal }
+func (b *BooleanLiteral) String() string {
+	return fmt.Sprint(b.Value)
+}
+
+// Prefix Expression
 type PrefixExpression struct {
 	Token    token.Token
 	Operator string
-	Operand  Expression
+	Right    Expression
 }
 
 func (p *PrefixExpression) expressionNode()      {}
@@ -79,7 +93,30 @@ func (p *PrefixExpression) String() string {
 
 	out.WriteString("(")
 	out.WriteString(p.Operator)
-	out.WriteString(p.Operand.String())
+	out.WriteString(p.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+// Infix Expression
+
+type InfixExpression struct {
+	Token    token.Token
+	Operator string
+	Left     Expression
+	Right    Expression
+}
+
+func (i *InfixExpression) expressionNode()      {}
+func (i *InfixExpression) TokenLiteral() string { return i.Token.Literal }
+func (i *InfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(i.Left.String())
+	out.WriteString(" " + i.Operator + " ")
+	out.WriteString(i.Right.String())
 	out.WriteString(")")
 
 	return out.String()

@@ -8,13 +8,63 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestOperatorPrecedence(t *testing.T) {
+	tests := []struct {
+		input  string
+		expect string
+	}{
+		{"1 + 2", "(1 + 2)"},
+		{"1 - 2 * 3", "(1 - (2 * 3))"},
+		{"1 * 2 + 3", "((1 * 2) + 3)"},
+		{"1 == 2 * 3", "(1 == (2 * 3))"},
+		{"1 > false + 3 * 4 < 2", "((1 > (false + (3 * 4))) < 2)"},
+		{"1 == 2 * 4 + !5 < 6 / true < 3", "(1 == ((((2 * 4) + (!5)) < (6 / true)) < 3))"},
+		{"(1 + 2) * 3", "((1 + 2) * 3)"},
+		{"1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"},
+	}
+
+	for _, test := range tests {
+		l := lexer.New(test.input)
+		p := parser.New(l).ParseProgram()
+
+		expectProgram(t, p, test.expect)
+	}
+}
+
+func TestInfixExpression(t *testing.T) {
+	tests := []struct {
+		input      string
+		leftValue  interface{}
+		operator   string
+		rightValue interface{}
+	}{
+		{"1 + 2", 1, "+", 2},
+		{"1 - 2", 1, "-", 2},
+		{"1 * 2", 1, "*", 2},
+		{"1 / 2", 1, "/", 2},
+		{"1 > 2", 1, ">", 2},
+		{"1 < 2", 1, "<", 2},
+		{"1 == 2", 1, "==", 2},
+		{"true != false", true, "!=", false},
+	}
+
+	for _, test := range tests {
+		l := lexer.New(test.input)
+		p := parser.New(l).ParseProgram()
+
+		expectStatements(t, p, 1)
+		stmt := expectExpressionStatement(t, p.Statements[0])
+		expectInfixExpression(t, stmt.Value, test.leftValue, test.operator, test.rightValue)
+	}
+}
+
 func TestPrefixExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		operator string
-		value    int64
+		value    interface{}
 	}{
-		{"-1", "-", 1}, {"!4", "!", 4},
+		{"-1", "-", 1}, {"!true", "!", true},
 	}
 
 	for _, test := range tests {
@@ -30,62 +80,29 @@ func TestPrefixExpression(t *testing.T) {
 			t.Fatalf("Wrong number of statements.\n\tExpected: %d\n\tGot: %d", 1, len(program.Statements))
 		}
 
-		stmt := assertExpressionStatement(t, program.Statements[0])
-		exp := assertPrefixExpression(t, stmt.Value)
-		assertIntegerLiteral(t, exp.Operand, test.value)
+		stmt := expectExpressionStatement(t, program.Statements[0])
+		exp := expectPrefixExpression(t, stmt.Value)
+		expectLiteralExpression(t, exp.Right, test.value)
 	}
 }
 
-func TestIntegerLiteralExpression(t *testing.T) {
+func TestLiteralExpression(t *testing.T) {
 	input := `123
-456`
+456
+false
+true
+identifier`
 
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l).ParseProgram()
 
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("Program nil")
-	}
+	expect := []interface{}{123, 456, false, true, "identifier"}
 
-	expect := []int64{123, 456}
-
-	if len(program.Statements) != len(expect) {
-		t.Fatalf("Wrong number of statements.\n\tExpected: %d\n\tGot: %d", len(expect), len(program.Statements))
-	}
+	expectStatements(t, p, len(expect))
 
 	for i, test := range expect {
-		stmt := assertExpressionStatement(t, program.Statements[i])
-		assertIntegerLiteral(t, stmt.Value, test)
-	}
-}
-
-func TestIdentifierExpression(t *testing.T) {
-	input := `foo
-bla`
-
-	l := lexer.New(input)
-	p := parser.New(l)
-
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("Program nil")
-	}
-
-	expect := []string{"foo", "bla"}
-
-	if len(program.Statements) != len(expect) {
-		t.Fatalf("Wrong number of statements.\n\tExpected: %d\n\tGot: %d", len(expect), len(program.Statements))
-	}
-
-	for i, test := range expect {
-		stmt := assertExpressionStatement(t, program.Statements[i])
-		if _, ok := stmt.Value.(*parser.Identifier); !ok {
-			t.Fatalf("expresson is not of type Identifier. got %T", stmt.Value)
-		}
-		if stmt.String() != test {
-			t.Fatalf("wrong expression.\n\texpected %q\n\tgot %q", test, stmt.String())
-		}
+		stmt := expectExpressionStatement(t, p.Statements[i])
+		expectLiteralExpression(t, stmt.Value, test)
 	}
 }
 
@@ -117,31 +134,22 @@ func TestToString(t *testing.T) {
 func TestReturnStatement(t *testing.T) {
 	input := `return 5
 return 10
-return test(1, 2)`
+return identifier
+return true`
 
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l).ParseProgram()
 
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("Program nil")
-	}
+	expect := []interface{}{5, 10, "identifier", true}
 
-	if len(program.Statements) != 3 {
-		t.Fatalf("Wrong number of statements.\n\tExpected: 3\n\tGot: %d", len(program.Statements))
-	}
+	expectStatements(t, p, len(expect))
 
-	tests := []string{
-		"return",
-		"return",
-		"return",
-	}
-
-	for i, test := range tests {
-		statement := program.Statements[i].(*parser.ReturnStatement)
-		if statement.TokenLiteral() != test {
-			t.Fatalf("test failed: token value wrong.\n\texpected %q\n\tgot %q", test, statement.TokenLiteral())
+	for i, test := range expect {
+		statement := p.Statements[i].(*parser.ReturnStatement)
+		if statement.TokenLiteral() != "return" {
+			t.Fatalf("test failed: token value wrong.\n\texpected: %q\n\tgot:     %q", test, statement.TokenLiteral())
 		}
+		expectLiteralExpression(t, statement.Value, test)
 	}
 }
 
@@ -163,39 +171,40 @@ func TestAssertNextToken(t *testing.T) {
 
 func TestDeclareStatement(t *testing.T) {
 	input := `var x = 5
-var y = 10
-var foo = 1234`
+var y = x
+var foo = true`
 
 	l := lexer.New(input)
-	p := parser.New(l)
+	p := parser.New(l).ParseProgram()
 
-	program := p.ParseProgram()
-	if program == nil {
-		t.Fatalf("Program nil")
+	expect := []struct {
+		identifier string
+		value      interface{}
+	}{
+		{identifier: "x", value: 5},
+		{identifier: "y", value: "x"},
+		{identifier: "foo", value: true},
 	}
 
-	if len(program.Statements) != 3 {
-		t.Fatalf("Wrong number of statements.\n\tExpected: 3\n\tGot: %d", len(program.Statements))
-	}
+	expectStatements(t, p, len(expect))
 
-	tests := []string{
-		"x",
-		"y",
-		"foo",
-	}
-
-	for i, test := range tests {
-		statement := program.Statements[i].(*parser.DeclareStatement)
-		if statement.Name.Value != test {
-			t.Fatalf("test failed: token value wrong.\n\texpected %q\n\tgot %q", test, statement.TokenLiteral())
+	for i, test := range expect {
+		statement := p.Statements[i].(*parser.DeclareStatement)
+		if statement.Name.String() != test.identifier {
+			t.Fatalf("test failed: identifier wrong.\n\texpected %q\n\tgot %q", test, statement.TokenLiteral())
 		}
-		if statement.Name.TokenLiteral() != test {
-			t.Fatalf("test failed: token literal wrong.\n\texpected %q\n\tgot %q", test, statement.TokenLiteral())
-		}
+		expectLiteralExpression(t, statement.Value, test.value)
 	}
 }
 
-func assertPrefixExpression(t *testing.T, expression parser.Expression) *parser.PrefixExpression {
+func expectProgram(t *testing.T, p *parser.Program, expect string) {
+	actual := p.String()
+	if actual != expect {
+		t.Errorf("wrong program.\n\texpected: %v\n\tgot:      %v", expect, actual)
+	}
+}
+
+func expectPrefixExpression(t *testing.T, expression parser.Expression) *parser.PrefixExpression {
 	exp, ok := expression.(*parser.PrefixExpression)
 	if !ok {
 		t.Fatalf("expresson is not of type PrefixExpression. got %T", expression)
@@ -203,7 +212,7 @@ func assertPrefixExpression(t *testing.T, expression parser.Expression) *parser.
 	return exp
 }
 
-func assertExpressionStatement(t *testing.T, statement parser.Statement) *parser.ExpressionStatement {
+func expectExpressionStatement(t *testing.T, statement parser.Statement) *parser.ExpressionStatement {
 	expressionStatement, ok := statement.(*parser.ExpressionStatement)
 	if !ok {
 		t.Fatalf("statement is not an ExpressionStatement. got %T", statement)
@@ -211,12 +220,67 @@ func assertExpressionStatement(t *testing.T, statement parser.Statement) *parser
 	return expressionStatement
 }
 
-func assertIntegerLiteral(t *testing.T, exp parser.Expression, expect int64) {
+func expectLiteralExpression(t *testing.T, expr parser.Expression, expect interface{}) {
+	switch v := expect.(type) {
+	case int:
+	case int64:
+		expectIntegerLiteral(t, expr, v)
+	case bool:
+		expectBooleanLiteral(t, expr, v)
+	case string:
+		expectIdentifier(t, expr, v)
+	default:
+		t.Fatalf("Check for undefined literal expession of type %T", v)
+	}
+}
+
+func expectInfixExpression(t *testing.T, expr parser.Expression, left interface{}, operator string, right interface{}) {
+	exp, ok := expr.(*parser.InfixExpression)
+	if !ok {
+		t.Fatalf("expresson is not of type InfixExpression. got %T", expr)
+	}
+
+	if exp.Operator != operator {
+		t.Fatalf("wrong operator.\n\tGot:    %s\n\tExpect: %s", exp.Operator, operator)
+	}
+
+	expectLiteralExpression(t, exp.Left, left)
+	expectLiteralExpression(t, exp.Right, right)
+}
+
+func expectIdentifier(t *testing.T, expr parser.Expression, expect string) {
+	identifier, ok := expr.(*parser.Identifier)
+	if !ok {
+		t.Fatalf("expression is not of type Identifier. Got %T", expr)
+	}
+
+	if identifier.Value != expect {
+		t.Fatalf("wrong identifier name.\n\tGot    %s\n\tExpect:%s", identifier.Value, expect)
+	}
+}
+
+func expectBooleanLiteral(t *testing.T, expr parser.Expression, expect bool) {
+	booleanLit, ok := expr.(*parser.BooleanLiteral)
+	if !ok {
+		t.Fatalf("expresson is not of type BooleanLiteral. got %T", expr)
+	}
+	if booleanLit.Value != expect {
+		t.Fatalf("wrong value.\n\texpected: %v\n\tgot:      %v", expect, booleanLit.Value)
+	}
+}
+
+func expectIntegerLiteral(t *testing.T, exp parser.Expression, expect int64) {
 	integerLiteralExp, ok := exp.(*parser.IntegerLiteral)
 	if !ok {
 		t.Fatalf("expresson is not of type IntegerLiteral. got %T", exp)
 	}
 	if integerLiteralExp.Value != expect {
 		t.Fatalf("wrong value.\n\texpected %q\n\tgot %q", expect, integerLiteralExp.Value)
+	}
+}
+
+func expectStatements(t *testing.T, p *parser.Program, expect int) {
+	if len(p.Statements) != expect {
+		t.Fatalf("Wrong number of statements.\n\tExpected: %d\n\tGot: %d", 1, len(p.Statements))
 	}
 }

@@ -8,6 +8,28 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+const (
+	_ int = iota
+	LOWEST
+	EQUALS      // ==
+	LESSGREATER // <
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -x or !x
+	CALL        // myFn()
+)
+
+var precedences = map[token.TokenType]int{
+	token.EQUAL:     EQUALS,
+	token.NOT_EQUAL: EQUALS,
+	token.LT:        LESSGREATER,
+	token.GT:        LESSGREATER,
+	token.PLUS:      SUM,
+	token.MINUS:     SUM,
+	token.STAR:      PRODUCT,
+	token.SLASH:     PRODUCT,
+}
+
 type (
 	prefixParseFn func() Expression
 	infixParseFn  func(Expression) Expression
@@ -29,8 +51,21 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
 	p.registerPrefix(token.INTEGER, p.parseIntegerLiteral)
+	p.registerPrefix(token.TRUE, p.parseBooleanLiteral)
+	p.registerPrefix(token.FALSE, p.parseBooleanLiteral)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+
+	p.infixParseFns = make(map[token.TokenType]infixParseFn)
+	p.registerInfix(token.EQUAL, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQUAL, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.STAR, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
 
 	// Read two tokens, so token and peekToken are both set
 	p.nextToken()
@@ -78,9 +113,7 @@ func (p *Parser) parseStatement() Statement {
 }
 
 func (p *Parser) parseDeclarationStmt() *DeclareStatement {
-	s := &DeclareStatement{}
-
-	s.Token = p.token
+	s := &DeclareStatement{Token: p.token}
 
 	p.assertNextToken(token.IDENTIFIER)
 
@@ -88,23 +121,23 @@ func (p *Parser) parseDeclarationStmt() *DeclareStatement {
 
 	p.assertNextToken(token.ASSIGN)
 
-	// todo: real expression parsing
-	for p.token.Type != token.NEWLINE && p.token.Type != token.EOF {
-		p.nextToken()
-	}
+	p.nextToken()
+
+	s.Value = p.parseExpression(LOWEST)
+
+	p.assertEnd()
 
 	return s
 }
 
 func (p *Parser) parseReturnStmt() *ReturnStatement {
-	s := &ReturnStatement{}
+	s := &ReturnStatement{Token: p.token}
 
-	s.Token = p.token
+	p.nextToken()
 
-	// todo: real expression parsing
-	for p.token.Type != token.NEWLINE && p.token.Type != token.EOF {
-		p.nextToken()
-	}
+	s.Value = p.parseExpression(LOWEST)
+
+	p.assertEnd()
 
 	return s
 }
@@ -112,23 +145,44 @@ func (p *Parser) parseReturnStmt() *ReturnStatement {
 func (p *Parser) parseExpressionStmt() *ExpressionStatement {
 	stmt := &ExpressionStatement{
 		Token: p.token,
-		Value: p.parseExpression(),
+		Value: p.parseExpression(LOWEST),
 	}
 
-	// todo: real expression parsing
-	for p.token.Type != token.NEWLINE && p.token.Type != token.EOF {
+	if p.peekToken.Type == token.NEWLINE {
 		p.nextToken()
 	}
 
 	return stmt
 }
 
-func (p *Parser) parseExpression() Expression {
+func (p *Parser) parseExpression(precedence int) Expression {
 	prefix, ok := p.prefixParseFns[p.token.Type]
 	if !ok {
+		log.Printf("No prefix fn found for token %q", p.token.Literal)
 		return nil
 	}
-	return prefix()
+
+	exp := prefix()
+
+	for p.peekToken.Type != token.NEWLINE && precedence < p.peekPrecedence() {
+		p.nextToken()
+
+		infix, ok := p.infixParseFns[p.token.Type]
+		if !ok {
+			log.Panicf("No infix fn found for token %q", p.token.Literal)
+		}
+
+		exp = infix(exp)
+	}
+
+	return exp
+}
+
+func (p *Parser) peekPrecedence() int {
+	if precedence, ok := precedences[p.peekToken.Type]; ok {
+		return precedence
+	}
+	return LOWEST
 }
 
 func (p *Parser) parseIdentifier() Expression {
@@ -149,6 +203,28 @@ func (p *Parser) parseIntegerLiteral() Expression {
 	}
 }
 
+func (p *Parser) parseBooleanLiteral() Expression {
+	return &BooleanLiteral{
+		Token: p.token,
+		Value: p.token.Type == token.TRUE,
+	}
+}
+
+func (p *Parser) parseGroupedExpression() Expression {
+	p.nextToken()
+
+	expr := p.parseExpression(LOWEST)
+
+	if p.peekToken.Type != token.RPAREN {
+		log.Println("opened ( is missing closing )")
+		return nil
+	}
+
+	p.nextToken()
+
+	return expr
+}
+
 func (p *Parser) parsePrefixExpression() Expression {
 	prefixExp := &PrefixExpression{}
 
@@ -157,9 +233,35 @@ func (p *Parser) parsePrefixExpression() Expression {
 
 	p.nextToken()
 
-	prefixExp.Operand = p.parseExpression()
+	prefixExp.Right = p.parseExpression(PREFIX)
 
 	return prefixExp
+}
+
+func (p *Parser) parseInfixExpression(left Expression) Expression {
+	infixExp := &InfixExpression{
+		Token:    p.token,
+		Operator: p.token.Literal,
+		Left:     left,
+	}
+
+	precedence, ok := precedences[p.token.Type]
+	if !ok {
+		precedence = LOWEST
+	}
+
+	p.nextToken()
+
+	infixExp.Right = p.parseExpression(precedence)
+
+	return infixExp
+}
+
+func (p *Parser) assertEnd() {
+	if p.peekToken.Type != token.NEWLINE && p.peekToken.Type != token.EOF {
+		log.Panicf("invalid syntax. Expected end of statement but got %q", p.peekToken.Type)
+	}
+	p.nextToken()
 }
 
 func (p *Parser) assertNextToken(t token.TokenType) {
