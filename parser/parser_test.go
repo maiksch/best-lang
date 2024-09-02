@@ -8,6 +8,26 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestFunctionExpression(t *testing.T) {
+	input := "fn(a, b) { return a + b }"
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	stmt := expectExpressionStatement(t, p.Statements[0])
+	fnExpr, ok := stmt.Value.(*parser.FunctionExpression)
+	if !ok {
+		t.Fatalf("expression is not an IfExpression. got %T", stmt.Value)
+	}
+	if len(fnExpr.Parameters) != 2 {
+		t.Fatalf("amount of parameters wrong. expected %v but got %v", 1, len(fnExpr.Parameters))
+	}
+	expectIdentifier(t, &fnExpr.Parameters[0], "a")
+	expectIdentifier(t, &fnExpr.Parameters[1], "b")
+	returnStmt := expectReturnStatement(t, fnExpr.Body.Statements[0])
+	expectInfixExpression(t, returnStmt.Value, "a", "+", "b")
+}
+
 func TestIfExpressions(t *testing.T) {
 	input := "if true == 1 { 1 } else { 2 }"
 
@@ -171,6 +191,14 @@ return true`
 		}
 		expectLiteralExpression(t, statement.Value, test)
 	}
+}
+
+func expectReturnStatement(t *testing.T, stmt parser.Statement) *parser.ReturnStatement {
+	returnStmt := stmt.(*parser.ReturnStatement)
+	if returnStmt.Token.Type != token.RETURN {
+		t.Fatalf("test failed: return statement expected got: %q", returnStmt.Token.Type)
+	}
+	return returnStmt
 }
 
 func TestAssertNextToken(t *testing.T) {

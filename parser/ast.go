@@ -150,6 +150,26 @@ func (i *IfExpression) String() string {
 	return out.String()
 }
 
+// Function Expression
+
+/*
+	fn(a, b) {
+	...
+	}
+*/
+
+type FunctionExpression struct {
+	Token      token.Token
+	Parameters []Identifier
+	Body       *BlockStatement
+}
+
+func (f *FunctionExpression) expressionNode()      {}
+func (f *FunctionExpression) TokenLiteral() string { return f.Token.Literal }
+func (f *FunctionExpression) String() string {
+	return ""
+}
+
 // Block Statement
 
 type BlockStatement struct {

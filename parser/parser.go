@@ -57,6 +57,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.EQUAL, p.parseInfixExpression)
@@ -118,7 +119,7 @@ func (p *Parser) parseBlockStatement() *BlockStatement {
 		Token: p.token,
 	}
 
-	for p.peekToken.Type != token.EOF && p.peekToken.Type != token.RBRACE {
+	for !p.isPeekToken(token.EOF) && !p.isPeekToken(token.RBRACE) {
 		p.nextToken()
 
 		stmt := p.parseStatement()
@@ -243,22 +244,44 @@ func (p *Parser) parseIfExpression() Expression {
 
 	expr.Consequence = p.parseBlockStatement()
 
-	if !p.isPeekToken(token.RBRACE) {
-		log.Println("if expression missing closing }")
-		return nil
-	}
-
 	if p.isPeekToken(token.ELSE) {
 		if !p.isPeekToken(token.LBRACE) {
 			log.Println("else block is missing opening {")
 			return nil
 		}
 		expr.Otherwise = p.parseBlockStatement()
-		if !p.isPeekToken(token.RBRACE) {
-			log.Println("else block missing closing }")
+	}
+
+	return expr
+}
+
+func (p *Parser) parseFunctionExpression() Expression {
+	expr := &FunctionExpression{Token: p.token}
+
+	if !p.isPeekToken(token.LPAREN) {
+		log.Println("function is missing opening (")
+		return nil
+	}
+
+	for !p.isPeekToken(token.RPAREN) {
+		p.isPeekToken(token.KOMMA)
+
+		if !p.isPeekToken(token.IDENTIFIER) {
+			log.Println("function parameter found is not an identifier")
 			return nil
 		}
+		expr.Parameters = append(expr.Parameters, Identifier{
+			Token: p.token,
+			Value: p.token.Literal,
+		})
 	}
+
+	if !p.isPeekToken(token.LBRACE) {
+		log.Println("function body opening { missing")
+		return nil
+	}
+
+	expr.Body = p.parseBlockStatement()
 
 	return expr
 }
@@ -309,7 +332,7 @@ func (p *Parser) parseInfixExpression(left Expression) Expression {
 }
 
 func (p *Parser) assertEnd() {
-	if p.peekToken.Type != token.NEWLINE && p.peekToken.Type != token.EOF {
+	if p.peekToken.Type != token.NEWLINE && p.peekToken.Type != token.EOF && p.peekToken.Type != token.RBRACE {
 		log.Panicf("invalid syntax. Expected end of statement but got %q", p.peekToken.Type)
 	}
 	p.nextToken()
