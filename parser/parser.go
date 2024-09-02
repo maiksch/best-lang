@@ -227,14 +227,6 @@ func (p *Parser) parseBooleanLiteral() Expression {
 	}
 }
 
-/*
-	if true == false {
-		1
-	} else {
-
-	  2
-	}
-*/
 func (p *Parser) parseIfExpression() Expression {
 	expr := &IfExpression{
 		Token: p.token,
@@ -244,35 +236,28 @@ func (p *Parser) parseIfExpression() Expression {
 
 	expr.Condition = p.parseExpression(LOWEST)
 
-	if p.peekToken.Type != token.LBRACE {
+	if !p.isPeekToken(token.LBRACE) {
 		log.Println("if expression missing opening {")
 		return nil
 	}
 
-	p.nextToken()
-
 	expr.Consequence = p.parseBlockStatement()
 
-	if p.peekToken.Type != token.RBRACE {
+	if !p.isPeekToken(token.RBRACE) {
 		log.Println("if expression missing closing }")
 		return nil
 	}
 
-	p.nextToken()
-
-	if p.peekToken.Type == token.ELSE {
-		p.nextToken()
-		if p.peekToken.Type != token.LBRACE {
+	if p.isPeekToken(token.ELSE) {
+		if !p.isPeekToken(token.LBRACE) {
 			log.Println("else block is missing opening {")
 			return nil
 		}
-		p.nextToken()
 		expr.Otherwise = p.parseBlockStatement()
-		if p.peekToken.Type != token.RBRACE {
+		if !p.isPeekToken(token.RBRACE) {
 			log.Println("else block missing closing }")
 			return nil
 		}
-		p.nextToken()
 	}
 
 	return expr
@@ -283,12 +268,10 @@ func (p *Parser) parseGroupedExpression() Expression {
 
 	expr := p.parseExpression(LOWEST)
 
-	if p.peekToken.Type != token.RPAREN {
+	if !p.isPeekToken(token.RPAREN) {
 		log.Println("opened ( is missing closing )")
 		return nil
 	}
-
-	p.nextToken()
 
 	return expr
 }
@@ -337,4 +320,12 @@ func (p *Parser) assertNextToken(t token.TokenType) {
 		log.Panicf("invalid syntax. Expected %q but got %q", t, p.peekToken.Type)
 	}
 	p.nextToken()
+}
+
+func (p *Parser) isPeekToken(t token.TokenType) bool {
+	ok := p.peekToken.Type == t
+	if ok {
+		p.nextToken()
+	}
+	return ok
 }
