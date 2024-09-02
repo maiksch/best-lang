@@ -56,6 +56,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.EQUAL, p.parseInfixExpression)
@@ -110,6 +111,22 @@ func (p *Parser) parseStatement() Statement {
 	default:
 		return p.parseExpressionStmt()
 	}
+}
+
+func (p *Parser) parseBlockStatement() *BlockStatement {
+	blockStmt := &BlockStatement{
+		Token: p.token,
+	}
+
+	for p.peekToken.Type != token.EOF && p.peekToken.Type != token.RBRACE {
+		p.nextToken()
+
+		stmt := p.parseStatement()
+
+		blockStmt.Statements = append(blockStmt.Statements, stmt)
+	}
+
+	return blockStmt
 }
 
 func (p *Parser) parseDeclarationStmt() *DeclareStatement {
@@ -208,6 +225,57 @@ func (p *Parser) parseBooleanLiteral() Expression {
 		Token: p.token,
 		Value: p.token.Type == token.TRUE,
 	}
+}
+
+/*
+	if true == false {
+		1
+	} else {
+
+	  2
+	}
+*/
+func (p *Parser) parseIfExpression() Expression {
+	expr := &IfExpression{
+		Token: p.token,
+	}
+
+	p.nextToken()
+
+	expr.Condition = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type != token.LBRACE {
+		log.Println("if expression missing opening {")
+		return nil
+	}
+
+	p.nextToken()
+
+	expr.Consequence = p.parseBlockStatement()
+
+	if p.peekToken.Type != token.RBRACE {
+		log.Println("if expression missing closing }")
+		return nil
+	}
+
+	p.nextToken()
+
+	if p.peekToken.Type == token.ELSE {
+		p.nextToken()
+		if p.peekToken.Type != token.LBRACE {
+			log.Println("else block is missing opening {")
+			return nil
+		}
+		p.nextToken()
+		expr.Otherwise = p.parseBlockStatement()
+		if p.peekToken.Type != token.RBRACE {
+			log.Println("else block missing closing }")
+			return nil
+		}
+		p.nextToken()
+	}
+
+	return expr
 }
 
 func (p *Parser) parseGroupedExpression() Expression {

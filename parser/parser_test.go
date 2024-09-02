@@ -8,6 +8,26 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestIfExpressions(t *testing.T) {
+	input := "if true == 1 { 1 } else { 2 }"
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+	expectStatements(t, p, 1)
+
+	stmt := expectExpressionStatement(t, p.Statements[0])
+
+	ifExpr, ok := stmt.Value.(*parser.IfExpression)
+	if !ok {
+		t.Fatalf("expression is not an IfExpression. got %T", stmt.Value)
+	}
+	expectInfixExpression(t, ifExpr.Condition, true, "==", 1)
+	consequence := expectExpressionStatement(t, ifExpr.Consequence.Statements[0])
+	expectLiteralExpression(t, consequence.Value, 1)
+	otherwise := expectExpressionStatement(t, ifExpr.Otherwise.Statements[0])
+	expectLiteralExpression(t, otherwise.Value, 2)
+}
+
 func TestOperatorPrecedence(t *testing.T) {
 	tests := []struct {
 		input  string
@@ -223,6 +243,7 @@ func expectExpressionStatement(t *testing.T, statement parser.Statement) *parser
 func expectLiteralExpression(t *testing.T, expr parser.Expression, expect interface{}) {
 	switch v := expect.(type) {
 	case int:
+		expectIntegerLiteral(t, expr, int64(v))
 	case int64:
 		expectIntegerLiteral(t, expr, v)
 	case bool:
@@ -274,8 +295,9 @@ func expectIntegerLiteral(t *testing.T, exp parser.Expression, expect int64) {
 	if !ok {
 		t.Fatalf("expresson is not of type IntegerLiteral. got %T", exp)
 	}
+	println("Comparing", integerLiteralExp.Value, expect)
 	if integerLiteralExp.Value != expect {
-		t.Fatalf("wrong value.\n\texpected %q\n\tgot %q", expect, integerLiteralExp.Value)
+		t.Fatalf("wrong value.\n\texpected: %v\n\tgot:      %v", expect, integerLiteralExp.Value)
 	}
 }
 
