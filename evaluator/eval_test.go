@@ -8,6 +8,39 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
+func TestEvalReturn(t *testing.T) {
+	input := `1 + 1
+	return true
+	5 + 5`
+	actual := testEval(input)
+	expectBooleanValue(t, actual, true)
+
+	input = `if true {
+		return 1
+	}
+	1 + 1`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 1)
+
+	input = `if true {
+		if true {
+			return true
+		}
+		return false
+	}`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, true)
+
+	input = `if true {
+		if true {
+			false
+		}
+		return true
+	}`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, true)
+}
+
 func TestEvalIfExpression(t *testing.T) {
 	input := "if 1 == 2 { 1 } else { 2 }"
 	actual := testEval(input)

@@ -9,13 +9,16 @@ import (
 func Eval(node parser.Node) Object {
 	switch node := node.(type) {
 	case *parser.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 
 	case *parser.ExpressionStatement:
 		return Eval(node.Value)
 
 	case *parser.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node)
+
+	case *parser.ReturnStatement:
+		return &ReturnValue{Value: Eval(node.Expression)}
 
 	case *parser.PrefixExpression:
 		return evalPrefixExpression(node)
@@ -36,6 +39,20 @@ func Eval(node parser.Node) Object {
 		log.Panicf("eval for %T not implemented", node)
 		return nil
 	}
+}
+
+func evalIfExpression(expr *parser.IfExpression) Object {
+	condition := Eval(expr.Condition)
+
+	if condition == TRUE {
+		return Eval(expr.Consequence)
+	}
+
+	if expr.Otherwise != nil {
+		return Eval(expr.Otherwise)
+	}
+
+	return &Nothing{}
 }
 
 func evalInfixExpression(expr *parser.InfixExpression) Object {
@@ -106,24 +123,26 @@ func evalPrefixExpression(expr *parser.PrefixExpression) Object {
 	return value
 }
 
-func evalIfExpression(expr *parser.IfExpression) Object {
-	condition := Eval(expr.Condition)
+func evalBlockStatement(block *parser.BlockStatement) Object {
+	var result Object
+	for _, stmt := range block.Statements {
+		result = Eval(stmt)
 
-	if condition == TRUE {
-		return Eval(expr.Consequence)
+		if result.Type() == RETURN {
+			break
+		}
 	}
-
-	if expr.Otherwise != nil {
-		return Eval(expr.Otherwise)
-	}
-
-	return &Nothing{}
+	return result
 }
 
-func evalStatements(stmts []parser.Statement) Object {
+func evalProgram(prg *parser.Program) Object {
 	var result Object
-	for _, stmt := range stmts {
+	for _, stmt := range prg.Statements {
 		result = Eval(stmt)
+
+		if result, ok := result.(*ReturnValue); ok {
+			return result.Value
+		}
 	}
 	return result
 }

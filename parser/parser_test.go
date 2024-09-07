@@ -8,6 +8,33 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestLineBreaks(t *testing.T) {
+	input := `
+if true {
+	if true {
+		return true
+	}
+	return false
+}`
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	exprStmt := expectExpressionStatement(t, p.Statements[0])
+	expr := expectIfExpression(t, exprStmt)
+	exprStmt2 := expectExpressionStatement(t, expr.Consequence.Statements[0])
+	expectIfExpression(t, exprStmt2)
+	expectReturnStatement(t, expr.Consequence.Statements[1])
+}
+
+func expectIfExpression(t *testing.T, actual *parser.ExpressionStatement) *parser.IfExpression {
+	expr, ok := actual.Value.(*parser.IfExpression)
+	if !ok {
+		t.Fatalf("expression is not an IfExpression. got %T", actual)
+	}
+	return expr
+}
+
 func TestFunctionCall(t *testing.T) {
 	input := "test(1, a, fn() { returns 1 })"
 
@@ -51,7 +78,7 @@ func TestFunctionLiteral(t *testing.T) {
 	expectIdentifier(t, &fnExpr.Parameters[0], "a")
 	expectIdentifier(t, &fnExpr.Parameters[1], "b")
 	returnStmt := expectReturnStatement(t, fnExpr.Body.Statements[0])
-	expectInfixExpression(t, returnStmt.Value, "a", "+", "b")
+	expectInfixExpression(t, returnStmt.Expression, "a", "+", "b")
 }
 
 func TestIfExpressions(t *testing.T) {
@@ -215,7 +242,7 @@ return true`
 		if statement.TokenLiteral() != "return" {
 			t.Fatalf("test failed: token value wrong.\n\texpected: %q\n\tgot:     %q", test, statement.TokenLiteral())
 		}
-		expectLiteralExpression(t, statement.Value, test)
+		expectLiteralExpression(t, statement.Expression, test)
 	}
 }
 

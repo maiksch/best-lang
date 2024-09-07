@@ -106,6 +106,10 @@ func (p *Parser) ParseProgram() *Program {
 }
 
 func (p *Parser) parseStatement() Statement {
+	for p.token.Type == token.NEWLINE {
+		p.nextToken()
+	}
+
 	switch p.token.Type {
 	case token.VARIABLE:
 		return p.parseDeclarationStmt()
@@ -155,7 +159,7 @@ func (p *Parser) parseReturnStmt() *ReturnStatement {
 
 	p.nextToken()
 
-	s.Value = p.parseExpression(LOWEST)
+	s.Expression = p.parseExpression(LOWEST)
 
 	p.assertEnd()
 

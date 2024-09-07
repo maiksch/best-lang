@@ -247,8 +247,8 @@ func (d *DeclareStatement) String() string {
 // Return Statement
 
 type ReturnStatement struct {
-	Token token.Token
-	Value Expression
+	Token      token.Token
+	Expression Expression
 }
 
 func (r *ReturnStatement) statementNode()       {}
@@ -259,8 +259,8 @@ func (r *ReturnStatement) String() string {
 	out.WriteString(r.TokenLiteral())
 	out.WriteString(" ")
 
-	if r.Value != nil {
-		out.WriteString(r.Value.String())
+	if r.Expression != nil {
+		out.WriteString(r.Expression.String())
 	}
 
 	return out.String()
