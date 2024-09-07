@@ -16,14 +16,24 @@ func TestEvalBooleanLiteral(t *testing.T) {
 	input = "false"
 	actual = testEval(input)
 	expectBooleanObject(t, actual, false)
+
+	input = "!true"
+	actual = testEval(input)
+	expectBooleanObject(t, actual, false)
+
+	input = "!false"
+	actual = testEval(input)
+	expectBooleanObject(t, actual, true)
 }
 
 func TestEvalIntegerLiteral(t *testing.T) {
 	input := "1"
-
 	actual := testEval(input)
-
 	expectIntegerObject(t, actual, 1)
+
+	input = "-100"
+	actual = testEval(input)
+	expectIntegerObject(t, actual, -100)
 }
 
 func expectBooleanObject(t *testing.T, v evaluator.Object, expect bool) {
