@@ -181,7 +181,7 @@ func TestToString(t *testing.T) {
 					Token: token.Token{Type: token.IDENTIFIER, Literal: "foo"},
 					Value: "foo",
 				},
-				Value: &parser.Identifier{
+				Expression: &parser.Identifier{
 					Token: token.Token{Type: token.IDENTIFIER, Literal: "bar"},
 					Value: "bar",
 				},
@@ -267,7 +267,7 @@ var foo = true`
 		if statement.Name.String() != test.identifier {
 			t.Fatalf("test failed: identifier wrong.\n\texpected %q\n\tgot %q", test, statement.TokenLiteral())
 		}
-		expectLiteralExpression(t, statement.Value, test.value)
+		expectLiteralExpression(t, statement.Expression, test.value)
 	}
 }
 

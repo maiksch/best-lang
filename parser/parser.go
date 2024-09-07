@@ -143,7 +143,7 @@ func (p *Parser) parseDeclarationStmt() *DeclareStatement {
 
 	p.nextToken()
 
-	s.Value = p.parseExpression(LOWEST)
+	s.Expression = p.parseExpression(LOWEST)
 
 	p.assertEnd()
 

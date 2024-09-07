@@ -223,9 +223,9 @@ func (b *BlockStatement) String() string {
 // Declare Statement
 
 type DeclareStatement struct {
-	Token token.Token
-	Name  *Identifier
-	Value Expression
+	Token      token.Token
+	Name       *Identifier
+	Expression Expression
 }
 
 func (d *DeclareStatement) statementNode()       {}
@@ -233,11 +233,12 @@ func (d *DeclareStatement) TokenLiteral() string { return d.Token.Literal }
 func (d *DeclareStatement) String() string {
 	var out bytes.Buffer
 
+	out.WriteString("var ")
 	out.WriteString(d.Name.String())
-	out.WriteString(" := ")
+	out.WriteString(" = ")
 
-	if d.Value != nil {
-		out.WriteString(d.Value.String())
+	if d.Expression != nil {
+		out.WriteString(d.Expression.String())
 	}
 
 	return out.String()

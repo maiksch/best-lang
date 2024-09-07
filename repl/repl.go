@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/maiksch/best-lang/lexer"
-	"github.com/maiksch/best-lang/token"
+	"github.com/maiksch/best-lang/parser"
 )
 
 const PROMPT = ">> "
@@ -24,9 +24,11 @@ func Start(r io.Reader, w io.Writer) {
 
 		line := scanner.Text()
 		lexer := lexer.New(line)
+		parser := parser.New(lexer)
 
-		for t := lexer.NextToken(); t.Type != token.EOF; t = lexer.NextToken() {
-			fmt.Fprintf(w, "%v\n", t)
-		}
+		programm := parser.ParseProgram()
+
+		io.WriteString(w, programm.String())
+		io.WriteString(w, "\n")
 	}
 }
