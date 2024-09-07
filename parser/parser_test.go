@@ -8,19 +8,45 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
-func TestFunctionExpression(t *testing.T) {
+func TestFunctionCall(t *testing.T) {
+	input := "test(1, a, fn() { returns 1 })"
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	stmt := expectExpressionStatement(t, p.Statements[0])
+	fnCall, ok := stmt.Value.(*parser.FunctionCall)
+	if !ok {
+		t.Fatalf("expression is not an FunctionCall. got %T", stmt.Value)
+	}
+	if len(fnCall.Arguments) != 3 {
+		t.Fatalf("amount of parameters wrong. expected %v but got %v", 3, len(fnCall.Arguments))
+	}
+	expectIdentifier(t, fnCall.Function, "test")
+	expectLiteralExpression(t, fnCall.Arguments[0], 1)
+	expectLiteralExpression(t, fnCall.Arguments[1], "a")
+	fnLit, ok := fnCall.Arguments[2].(*parser.FunctionLiteral)
+	if !ok {
+		t.Fatalf("expression is not an FunctionExpression. got %T", stmt.Value)
+	}
+	if len(fnLit.Parameters) != 0 {
+		t.Fatalf("amount of parameters wrong. expected %v but got %v", 0, len(fnLit.Parameters))
+	}
+}
+
+func TestFunctionLiteral(t *testing.T) {
 	input := "fn(a, b) { return a + b }"
 
 	l := lexer.New(input)
 	p := parser.New(l).ParseProgram()
 
 	stmt := expectExpressionStatement(t, p.Statements[0])
-	fnExpr, ok := stmt.Value.(*parser.FunctionExpression)
+	fnExpr, ok := stmt.Value.(*parser.FunctionLiteral)
 	if !ok {
-		t.Fatalf("expression is not an IfExpression. got %T", stmt.Value)
+		t.Fatalf("expression is not an FunctionExpression. got %T", stmt.Value)
 	}
 	if len(fnExpr.Parameters) != 2 {
-		t.Fatalf("amount of parameters wrong. expected %v but got %v", 1, len(fnExpr.Parameters))
+		t.Fatalf("amount of parameters wrong. expected %v but got %v", 2, len(fnExpr.Parameters))
 	}
 	expectIdentifier(t, &fnExpr.Parameters[0], "a")
 	expectIdentifier(t, &fnExpr.Parameters[1], "b")

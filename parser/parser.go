@@ -28,6 +28,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:     SUM,
 	token.STAR:      PRODUCT,
 	token.SLASH:     PRODUCT,
+	token.LPAREN:    CALL,
 }
 
 type (
@@ -68,6 +69,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.STAR, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.LPAREN, p.parseFunctionCall)
 
 	// Read two tokens, so token and peekToken are both set
 	p.nextToken()
@@ -256,7 +258,7 @@ func (p *Parser) parseIfExpression() Expression {
 }
 
 func (p *Parser) parseFunctionExpression() Expression {
-	expr := &FunctionExpression{Token: p.token}
+	expr := &FunctionLiteral{Token: p.token}
 
 	if !p.isPeekToken(token.LPAREN) {
 		log.Println("function is missing opening (")
@@ -282,6 +284,34 @@ func (p *Parser) parseFunctionExpression() Expression {
 	}
 
 	expr.Body = p.parseBlockStatement()
+
+	return expr
+}
+
+func (p *Parser) parseFunctionCall(left Expression) Expression {
+	expr := &FunctionCall{
+		Token:    p.token,
+		Function: left,
+	}
+
+	if p.isPeekToken(token.RPAREN) {
+		return expr
+	}
+
+	for {
+		p.nextToken()
+		arg := p.parseExpression(LOWEST)
+		expr.Arguments = append(expr.Arguments, arg)
+
+		if !p.isPeekToken(token.KOMMA) {
+			break
+		}
+	}
+
+	if !p.isPeekToken(token.RPAREN) {
+		log.Println("function call: closing ) missing")
+		return nil
+	}
 
 	return expr
 }

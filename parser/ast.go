@@ -150,24 +150,57 @@ func (i *IfExpression) String() string {
 	return out.String()
 }
 
-// Function Expression
+// Function Literal
 
-/*
-	fn(a, b) {
-	...
-	}
-*/
-
-type FunctionExpression struct {
+type FunctionLiteral struct {
 	Token      token.Token
 	Parameters []Identifier
 	Body       *BlockStatement
 }
 
-func (f *FunctionExpression) expressionNode()      {}
-func (f *FunctionExpression) TokenLiteral() string { return f.Token.Literal }
-func (f *FunctionExpression) String() string {
-	return ""
+func (f *FunctionLiteral) expressionNode()      {}
+func (f *FunctionLiteral) TokenLiteral() string { return f.Token.Literal }
+func (f *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("fn(")
+	for i, param := range f.Parameters {
+		if i != 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(param.String())
+	}
+	out.WriteString(")")
+
+	out.WriteString("{")
+	out.WriteString(f.Body.String())
+	out.WriteString("}")
+
+	return out.String()
+}
+
+type FunctionCall struct {
+	Token     token.Token
+	Function  Expression
+	Arguments []Expression
+}
+
+func (f *FunctionCall) expressionNode()      {}
+func (f *FunctionCall) TokenLiteral() string { return f.Token.Literal }
+func (f *FunctionCall) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(f.Function.String())
+	out.WriteString("(")
+	for i, arg := range f.Arguments {
+		if i != 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(arg.String())
+	}
+	out.WriteString(")")
+
+	return out.String()
 }
 
 // Block Statement
