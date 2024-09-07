@@ -8,7 +8,17 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
-func TestEvaluateIntegerLiteral(t *testing.T) {
+func TestEvalBooleanLiteral(t *testing.T) {
+	input := "true"
+	actual := testEval(input)
+	expectBooleanObject(t, actual, true)
+
+	input = "false"
+	actual = testEval(input)
+	expectBooleanObject(t, actual, false)
+}
+
+func TestEvalIntegerLiteral(t *testing.T) {
 	input := "1"
 
 	actual := testEval(input)
@@ -16,12 +26,22 @@ func TestEvaluateIntegerLiteral(t *testing.T) {
 	expectIntegerObject(t, actual, 1)
 }
 
+func expectBooleanObject(t *testing.T, v evaluator.Object, expect bool) {
+	obj, ok := v.(*evaluator.Boolean)
+	if !ok {
+		t.Fatalf("Expected integer object, got %T", v)
+	}
+	if obj.Value != expect {
+		t.Fatalf("Expected evaluated value to be %t. got %t", expect, obj.Value)
+	}
+}
+
 func expectIntegerObject(t *testing.T, v evaluator.Object, expect int64) {
 	obj, ok := v.(*evaluator.Integer)
 	if !ok {
 		t.Fatalf("Expected integer object, got %T", v)
 	}
-	if obj.Value != 1 {
+	if obj.Value != expect {
 		t.Fatalf("Expected evaluated value to be %d. got %d", expect, obj.Value)
 	}
 }

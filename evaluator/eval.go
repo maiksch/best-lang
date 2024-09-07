@@ -3,15 +3,22 @@ package evaluator
 import "github.com/maiksch/best-lang/parser"
 
 func Eval(node parser.Node) Object {
-	switch x := node.(type) {
+	switch node := node.(type) {
 	case *parser.Program:
-		return evalStatements(x.Statements)
+		return evalStatements(node.Statements)
 
 	case *parser.ExpressionStatement:
-		return Eval(x.Value)
+		return Eval(node.Value)
 
 	case *parser.IntegerLiteral:
-		return &Integer{Value: x.Value}
+		return &Integer{Value: node.Value}
+
+	case *parser.BooleanLiteral:
+		if node.Value {
+			return TRUE
+		} else {
+			return FALSE
+		}
 
 	default:
 		panic("not implemented")
