@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/maiksch/best-lang/evaluator"
 	"github.com/maiksch/best-lang/lexer"
 	"github.com/maiksch/best-lang/parser"
 )
@@ -26,9 +27,11 @@ func Start(r io.Reader, w io.Writer) {
 		lexer := lexer.New(line)
 		parser := parser.New(lexer)
 
-		programm := parser.ParseProgram()
+		ast := parser.ParseProgram()
 
-		io.WriteString(w, programm.String())
+		result := evaluator.Eval(ast)
+
+		io.WriteString(w, result.Inspect())
 		io.WriteString(w, "\n")
 	}
 }
