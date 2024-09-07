@@ -17,6 +17,12 @@ func Eval(node parser.Node) Object {
 	case *parser.IntegerLiteral:
 		return &Integer{Value: node.Value}
 
+	case *parser.PrefixExpression:
+		return evalPrefixExpression(node)
+
+	case *parser.InfixExpression:
+		return evalInfixExpression(node)
+
 	case *parser.BooleanLiteral:
 		if node.Value {
 			return TRUE
@@ -24,13 +30,63 @@ func Eval(node parser.Node) Object {
 			return FALSE
 		}
 
-	case *parser.PrefixExpression:
-		return evalPrefixExpression(node)
-
 	default:
 		log.Panicf("eval for %T not implemented", node)
 		return nil
 	}
+}
+
+func evalInfixExpression(expr *parser.InfixExpression) Object {
+	left := Eval(expr.Left)
+	right := Eval(expr.Right)
+
+	if left.Type() == INTEGER && right.Type() == INTEGER {
+		l := left.(*Integer).Value
+		r := right.(*Integer).Value
+
+		switch expr.Operator {
+		case "==":
+			return toBooleanObject(l == r)
+
+		case "!=":
+			return toBooleanObject(l != r)
+
+		case ">":
+			return toBooleanObject(l > r)
+
+		case "<":
+			return toBooleanObject(l < r)
+
+		case "+":
+			return &Integer{Value: l + r}
+
+		case "-":
+			return &Integer{Value: l - r}
+
+		case "/":
+			return &Integer{Value: l / r}
+
+		case "*":
+			return &Integer{Value: l * r}
+		}
+	}
+
+	if left.Type() == BOOLEAN && right.Type() == BOOLEAN {
+		switch expr.Operator {
+		case "==":
+			return toBooleanObject(left == right)
+
+		case "!=":
+			return toBooleanObject(left != right)
+		}
+	}
+
+	switch expr.Operator {
+	case "==":
+		return FALSE
+	}
+
+	return nil
 }
 
 func evalPrefixExpression(expr *parser.PrefixExpression) Object {
@@ -46,11 +102,7 @@ func evalPrefixExpression(expr *parser.PrefixExpression) Object {
 	if b, ok := value.(*Boolean); ok {
 		switch expr.Operator {
 		case "!":
-			if b == TRUE {
-				value = FALSE
-			} else {
-				value = TRUE
-			}
+			return toBooleanObject(!b.Value)
 		}
 	}
 
@@ -63,4 +115,12 @@ func evalStatements(stmts []parser.Statement) Object {
 		result = Eval(stmt)
 	}
 	return result
+}
+
+func toBooleanObject(v bool) *Boolean {
+	if v {
+		return TRUE
+	} else {
+		return FALSE
+	}
 }
