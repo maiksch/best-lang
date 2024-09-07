@@ -14,8 +14,8 @@ func Eval(node parser.Node) Object {
 	case *parser.ExpressionStatement:
 		return Eval(node.Value)
 
-	case *parser.IntegerLiteral:
-		return &Integer{Value: node.Value}
+	case *parser.BlockStatement:
+		return evalStatements(node.Statements)
 
 	case *parser.PrefixExpression:
 		return evalPrefixExpression(node)
@@ -23,12 +23,14 @@ func Eval(node parser.Node) Object {
 	case *parser.InfixExpression:
 		return evalInfixExpression(node)
 
+	case *parser.IfExpression:
+		return evalIfExpression(node)
+
+	case *parser.IntegerLiteral:
+		return &Integer{Value: node.Value}
+
 	case *parser.BooleanLiteral:
-		if node.Value {
-			return TRUE
-		} else {
-			return FALSE
-		}
+		return toBooleanObject(node.Value)
 
 	default:
 		log.Panicf("eval for %T not implemented", node)
@@ -92,21 +94,30 @@ func evalInfixExpression(expr *parser.InfixExpression) Object {
 func evalPrefixExpression(expr *parser.PrefixExpression) Object {
 	value := Eval(expr.Right)
 
-	if i, ok := value.(*Integer); ok {
-		switch expr.Operator {
-		case "-":
-			i.Value = i.Value * -1
-		}
+	if value.Type() == INTEGER && expr.Operator == "-" {
+		i := value.(*Integer)
+		i.Value = i.Value * -1
 	}
 
-	if b, ok := value.(*Boolean); ok {
-		switch expr.Operator {
-		case "!":
-			return toBooleanObject(!b.Value)
-		}
+	if value.Type() == BOOLEAN && expr.Operator == "!" {
+		return toBooleanObject(!value.(*Boolean).Value)
 	}
 
 	return value
+}
+
+func evalIfExpression(expr *parser.IfExpression) Object {
+	condition := Eval(expr.Condition)
+
+	if condition == TRUE {
+		return Eval(expr.Consequence)
+	}
+
+	if expr.Otherwise != nil {
+		return Eval(expr.Otherwise)
+	}
+
+	return &Nothing{}
 }
 
 func evalStatements(stmts []parser.Statement) Object {

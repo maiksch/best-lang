@@ -8,6 +8,20 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
+func TestEvalIfExpression(t *testing.T) {
+	input := "if 1 == 2 { 1 } else { 2 }"
+	actual := testEval(input)
+	expectIntegerValue(t, actual, 2)
+
+	input = "if 2 == 2 { 1 } else { 2 }"
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 1)
+
+	input = "if false { 1 }"
+	actual = testEval(input)
+	expectNothingValue(t, actual)
+}
+
 func TestEvalInfixExpression(t *testing.T) {
 	input := "1 == 1"
 	actual := testEval(input)
@@ -96,6 +110,12 @@ func TestEvalIntegerLiteral(t *testing.T) {
 	input = "(5 + 10 * 2 + 15 / 3) * 2 + -10"
 	actual = testEval(input)
 	expectIntegerValue(t, actual, 50)
+}
+
+func expectNothingValue(t *testing.T, v evaluator.Object) {
+	if _, ok := v.(*evaluator.Nothing); !ok {
+		t.Fatalf("Expected nothing value, got %T", v)
+	}
 }
 
 func expectBooleanValue(t *testing.T, v evaluator.Object, expect bool) {
