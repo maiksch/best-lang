@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/maiksch/best-lang/parser"
@@ -43,6 +44,9 @@ func Eval(node parser.Node) Object {
 
 func evalIfExpression(expr *parser.IfExpression) Object {
 	condition := Eval(expr.Condition)
+	if isError(condition) {
+		return condition
+	}
 
 	if condition == TRUE {
 		return Eval(expr.Consequence)
@@ -57,7 +61,13 @@ func evalIfExpression(expr *parser.IfExpression) Object {
 
 func evalInfixExpression(expr *parser.InfixExpression) Object {
 	left := Eval(expr.Left)
+	if isError(left) {
+		return left
+	}
 	right := Eval(expr.Right)
+	if isError(right) {
+		return right
+	}
 
 	if left.Type() == INTEGER && right.Type() == INTEGER {
 		l := left.(*Integer).Value
@@ -100,27 +110,26 @@ func evalInfixExpression(expr *parser.InfixExpression) Object {
 		}
 	}
 
-	switch expr.Operator {
-	case "==":
-		return FALSE
-	}
-
-	return nil
+	return newError("operator type mismatch. %s %s %s", left.Type(), expr.Operator, right.Type())
 }
 
 func evalPrefixExpression(expr *parser.PrefixExpression) Object {
 	value := Eval(expr.Right)
+	if isError(value) {
+		return value
+	}
 
 	if value.Type() == INTEGER && expr.Operator == "-" {
 		i := value.(*Integer)
 		i.Value = i.Value * -1
+		return value
 	}
 
 	if value.Type() == BOOLEAN && expr.Operator == "!" {
 		return toBooleanObject(!value.(*Boolean).Value)
 	}
 
-	return value
+	return newError("invalid operator. %s%s", expr.Operator, value.Type())
 }
 
 func evalBlockStatement(block *parser.BlockStatement) Object {
@@ -128,8 +137,8 @@ func evalBlockStatement(block *parser.BlockStatement) Object {
 	for _, stmt := range block.Statements {
 		result = Eval(stmt)
 
-		if result.Type() == RETURN {
-			break
+		if result.Type() == ERROR || result.Type() == RETURN {
+			return result
 		}
 	}
 	return result
@@ -140,11 +149,27 @@ func evalProgram(prg *parser.Program) Object {
 	for _, stmt := range prg.Statements {
 		result = Eval(stmt)
 
-		if result, ok := result.(*ReturnValue); ok {
+		switch result := result.(type) {
+		case *ReturnValue:
 			return result.Value
+		case *Error:
+			return result
 		}
 	}
 	return result
+}
+
+func isError(obj Object) bool {
+	if obj != nil {
+		return obj.Type() == ERROR
+	}
+	return false
+}
+
+func newError(message string, a ...interface{}) *Error {
+	return &Error{
+		Message: fmt.Sprintf(message, a...),
+	}
 }
 
 func toBooleanObject(v bool) *Boolean {

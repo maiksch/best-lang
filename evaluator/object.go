@@ -7,8 +7,9 @@ type ObjectType string
 const (
 	INTEGER ObjectType = "INTEGER"
 	BOOLEAN ObjectType = "BOOLEAN"
-	NOTHING ObjectType = "NOTHING"
 	RETURN  ObjectType = "RETURN"
+	ERROR   ObjectType = "ERROR"
+	NOTHING ObjectType = "NOTHING"
 )
 
 type Object interface {
@@ -53,6 +54,17 @@ type ReturnValue struct {
 
 func (r *ReturnValue) Type() ObjectType { return RETURN }
 func (r *ReturnValue) Inspect() string  { return r.Value.Inspect() }
+
+/**
+* Error
+ */
+
+type Error struct {
+	Message string
+}
+
+func (e *Error) Type() ObjectType { return ERROR }
+func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 /**
 * Nothing

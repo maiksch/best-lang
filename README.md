@@ -10,6 +10,11 @@ This is what I want to implement in the future, independent of the book:
 - No null (Optionals instead)
 - No try catch (somehow something better)
 
+And some nice to haves:
+
+- Stack traces for errors
+- Line numbers for errors
+
 Statements
 `variable declaration/assignment`
 `return`

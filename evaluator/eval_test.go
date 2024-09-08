@@ -8,6 +8,63 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
+func TestEvalErrorHandling(t *testing.T) {
+	input := "1 + true"
+	actual := testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER + BOOLEAN")
+
+	input = "-true"
+	actual = testEval(input)
+	expectError(t, actual, "invalid operator. -BOOLEAN")
+
+	input = "!1"
+	actual = testEval(input)
+	expectError(t, actual, "invalid operator. !INTEGER")
+
+	input = `1 + true
+	2`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER + BOOLEAN")
+
+	input = `true + true`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. BOOLEAN + BOOLEAN")
+
+	input = `
+	if true {
+		1 + true
+		return 2
+	}
+	return 1`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER + BOOLEAN")
+
+	input = `
+	if true + 1 {
+		return 2
+	}`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. BOOLEAN + INTEGER")
+
+	input = `
+	if 2 == 2 + true {
+		return 2
+	}`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER + BOOLEAN")
+
+	input = `
+	if 2 == true {
+		return 2
+	}`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER == BOOLEAN")
+
+	input = `!(1 == true)`
+	actual = testEval(input)
+	expectError(t, actual, "operator type mismatch. INTEGER == BOOLEAN")
+}
+
 func TestEvalReturn(t *testing.T) {
 	input := `1 + 1
 	return true
@@ -143,6 +200,16 @@ func TestEvalIntegerLiteral(t *testing.T) {
 	input = "(5 + 10 * 2 + 15 / 3) * 2 + -10"
 	actual = testEval(input)
 	expectIntegerValue(t, actual, 50)
+}
+
+func expectError(t *testing.T, actual evaluator.Object, expect string) {
+	errorValue, ok := actual.(*evaluator.Error)
+	if !ok {
+		t.Fatalf("expected error value. got %T", actual)
+	}
+	if errorValue.Message != expect {
+		t.Fatalf("wrong error\n\texpected: %s\n\tgot:      %s", expect, errorValue.Message)
+	}
 }
 
 func expectNothingValue(t *testing.T, v evaluator.Object) {
