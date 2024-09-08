@@ -8,6 +8,13 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
+func TestEvalDeclaration(t *testing.T) {
+	input := `var x = 1
+	x`
+	actual := testEval(input)
+	expectIntegerValue(t, actual, 1)
+}
+
 func TestEvalErrorHandling(t *testing.T) {
 	input := "1 + true"
 	actual := testEval(input)
@@ -63,6 +70,10 @@ func TestEvalErrorHandling(t *testing.T) {
 	input = `!(1 == true)`
 	actual = testEval(input)
 	expectError(t, actual, "operator type mismatch. INTEGER == BOOLEAN")
+
+	input = `x`
+	actual = testEval(input)
+	expectError(t, actual, "unknown identifier x")
 }
 
 func TestEvalReturn(t *testing.T) {
@@ -242,5 +253,6 @@ func testEval(input string) evaluator.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
-	return evaluator.Eval(program)
+	env := evaluator.NewEnvrionment()
+	return evaluator.Eval(program, env)
 }

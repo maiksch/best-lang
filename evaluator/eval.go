@@ -7,28 +7,34 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
-func Eval(node parser.Node) Object {
+func Eval(node parser.Node, env *Environment) Object {
 	switch node := node.(type) {
 	case *parser.Program:
-		return evalProgram(node)
+		return evalProgram(node, env)
 
 	case *parser.ExpressionStatement:
-		return Eval(node.Value)
+		return Eval(node.Value, env)
 
 	case *parser.BlockStatement:
-		return evalBlockStatement(node)
+		return evalBlockStatement(node, env)
+
+	case *parser.DeclareStatement:
+		return evalDeclareStatement(node, env)
 
 	case *parser.ReturnStatement:
-		return &ReturnValue{Value: Eval(node.Expression)}
+		return &ReturnValue{Value: Eval(node.Expression, env)}
 
 	case *parser.PrefixExpression:
-		return evalPrefixExpression(node)
+		return evalPrefixExpression(node, env)
 
 	case *parser.InfixExpression:
-		return evalInfixExpression(node)
+		return evalInfixExpression(node, env)
 
 	case *parser.IfExpression:
-		return evalIfExpression(node)
+		return evalIfExpression(node, env)
+
+	case *parser.Identifier:
+		return env.get(node)
 
 	case *parser.IntegerLiteral:
 		return &Integer{Value: node.Value}
@@ -42,29 +48,29 @@ func Eval(node parser.Node) Object {
 	}
 }
 
-func evalIfExpression(expr *parser.IfExpression) Object {
-	condition := Eval(expr.Condition)
+func evalIfExpression(expr *parser.IfExpression, env *Environment) Object {
+	condition := Eval(expr.Condition, env)
 	if isError(condition) {
 		return condition
 	}
 
 	if condition == TRUE {
-		return Eval(expr.Consequence)
+		return Eval(expr.Consequence, env)
 	}
 
 	if expr.Otherwise != nil {
-		return Eval(expr.Otherwise)
+		return Eval(expr.Otherwise, env)
 	}
 
 	return &Nothing{}
 }
 
-func evalInfixExpression(expr *parser.InfixExpression) Object {
-	left := Eval(expr.Left)
+func evalInfixExpression(expr *parser.InfixExpression, env *Environment) Object {
+	left := Eval(expr.Left, env)
 	if isError(left) {
 		return left
 	}
-	right := Eval(expr.Right)
+	right := Eval(expr.Right, env)
 	if isError(right) {
 		return right
 	}
@@ -113,8 +119,8 @@ func evalInfixExpression(expr *parser.InfixExpression) Object {
 	return newError("operator type mismatch. %s %s %s", left.Type(), expr.Operator, right.Type())
 }
 
-func evalPrefixExpression(expr *parser.PrefixExpression) Object {
-	value := Eval(expr.Right)
+func evalPrefixExpression(expr *parser.PrefixExpression, env *Environment) Object {
+	value := Eval(expr.Right, env)
 	if isError(value) {
 		return value
 	}
@@ -132,10 +138,19 @@ func evalPrefixExpression(expr *parser.PrefixExpression) Object {
 	return newError("invalid operator. %s%s", expr.Operator, value.Type())
 }
 
-func evalBlockStatement(block *parser.BlockStatement) Object {
+func evalDeclareStatement(stmt *parser.DeclareStatement, env *Environment) Object {
+	value := Eval(stmt.Expression, env)
+	if isError(value) {
+		return value
+	}
+
+	return env.set(stmt.Name, value)
+}
+
+func evalBlockStatement(block *parser.BlockStatement, env *Environment) Object {
 	var result Object
 	for _, stmt := range block.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 
 		if result.Type() == ERROR || result.Type() == RETURN {
 			return result
@@ -144,10 +159,10 @@ func evalBlockStatement(block *parser.BlockStatement) Object {
 	return result
 }
 
-func evalProgram(prg *parser.Program) Object {
+func evalProgram(prg *parser.Program, env *Environment) Object {
 	var result Object
 	for _, stmt := range prg.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 
 		switch result := result.(type) {
 		case *ReturnValue:

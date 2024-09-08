@@ -70,6 +70,8 @@ func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 * Nothing
  */
 
+var NOTHING_OBJ = &Nothing{}
+
 type Nothing struct{}
 
 func (n *Nothing) Type() ObjectType { return NOTHING }
