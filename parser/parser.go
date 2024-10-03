@@ -89,6 +89,7 @@ func (p *Parser) registerInfix(token token.TokenType, fn infixParseFn) {
 func (p *Parser) nextToken() {
 	p.token = p.peekToken
 	p.peekToken = p.lexer.NextToken()
+	log.Printf("%s %s\n", p.token.Type, p.token.Literal)
 }
 
 func (p *Parser) ParseProgram() *Program {
@@ -125,7 +126,9 @@ func (p *Parser) parseBlockStatement() *BlockStatement {
 		Token: p.token,
 	}
 
-	for !p.isPeekToken(token.EOF) && !p.isPeekToken(token.RBRACE) {
+	for !p.isPeekToken(token.EOF) &&
+		!p.isPeekToken(token.RBRACE) &&
+		!(p.token.Type == token.RBRACE && p.isPeekToken(token.NEWLINE)) {
 		p.nextToken()
 
 		stmt := p.parseStatement()
@@ -276,7 +279,7 @@ func (p *Parser) parseFunctionExpression() Expression {
 			log.Println("function parameter found is not an identifier")
 			return nil
 		}
-		expr.Parameters = append(expr.Parameters, Identifier{
+		expr.Parameters = append(expr.Parameters, &Identifier{
 			Token: p.token,
 			Value: p.token.Literal,
 		})

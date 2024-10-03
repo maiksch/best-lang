@@ -8,6 +8,15 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestLineBreaks2(t *testing.T) {
+	input := `fn(x, func) { return func(x) }`
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	t.Log(p.String())
+}
+
 func TestLineBreaks(t *testing.T) {
 	input := `
 if true {
@@ -75,8 +84,8 @@ func TestFunctionLiteral(t *testing.T) {
 	if len(fnExpr.Parameters) != 2 {
 		t.Fatalf("amount of parameters wrong. expected %v but got %v", 2, len(fnExpr.Parameters))
 	}
-	expectIdentifier(t, &fnExpr.Parameters[0], "a")
-	expectIdentifier(t, &fnExpr.Parameters[1], "b")
+	expectIdentifier(t, fnExpr.Parameters[0], "a")
+	expectIdentifier(t, fnExpr.Parameters[1], "b")
 	returnStmt := expectReturnStatement(t, fnExpr.Body.Statements[0])
 	expectInfixExpression(t, returnStmt.Expression, "a", "+", "b")
 }

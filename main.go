@@ -1,13 +1,15 @@
 package main
 
 import (
-	"os"
-
 	"github.com/maiksch/best-lang/repl"
 )
 
 func main() {
-	println("Welcome to the Best Lang REPL!")
+	repl.Debug(`
+	var foo = fn(x, func) { return func(x) }
+	foo(1, fn(){})
+	`)
 
-	repl.Start(os.Stdin, os.Stdout)
+	// println("Welcome to the Best Lang REPL!")
+	// repl.Start(os.Stdin, os.Stdout)
 }

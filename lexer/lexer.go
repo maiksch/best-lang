@@ -84,12 +84,14 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	if ch == 0 {
-		return token.Token{Type: token.EOF}
+		return token.Token{Type: token.EOF, Literal: "EOF"}
 	}
 
 	if t, ok := token.Symbols[ch]; ok {
 		// Two symbol tokens
 		switch t {
+		case token.NEWLINE:
+			return token.Token{Type: token.NEWLINE}
 		case token.ASSIGN:
 			if peek := l.peekChar(); peek == '=' {
 				// Equal operator ==

@@ -36,3 +36,11 @@ func Start(r io.Reader, w io.Writer) {
 		io.WriteString(w, "\n")
 	}
 }
+
+func Debug(input string) {
+	lexer := lexer.New(input)
+	prog := parser.New(lexer).ParseProgram()
+
+	println()
+	println(prog.String())
+}

@@ -22,7 +22,21 @@ func Eval(node parser.Node, env *Environment) Object {
 		return evalDeclareStatement(node, env)
 
 	case *parser.ReturnStatement:
-		return &ReturnValue{Value: Eval(node.Expression, env)}
+		val := Eval(node.Expression, env)
+		if isError(val) {
+			return val
+		}
+		return &ReturnValue{Value: val}
+
+	case *parser.FunctionLiteral:
+		return &Function{
+			Parameters: node.Parameters,
+			Body:       node.Body,
+			Env:        env,
+		}
+
+	case *parser.FunctionCall:
+		return evalFunctionCall(node, env)
 
 	case *parser.PrefixExpression:
 		return evalPrefixExpression(node, env)
@@ -46,6 +60,35 @@ func Eval(node parser.Node, env *Environment) Object {
 		log.Panicf("eval for %T not implemented", node)
 		return nil
 	}
+}
+
+func evalFunctionCall(call *parser.FunctionCall, env *Environment) Object {
+	fn := Eval(call.Function, env)
+	if isError(fn) {
+		return fn
+	}
+
+	if fn, ok := fn.(*Function); ok {
+		closure := CloneEnvironment(fn.Env)
+
+		for i, arg := range call.Arguments {
+			val := Eval(arg, env)
+			if isError(val) {
+				return val
+			}
+			closure.set(fn.Parameters[i], val)
+		}
+
+		result := Eval(fn.Body, closure)
+
+		if returnValue, ok := result.(*ReturnValue); ok {
+			result = returnValue.Value
+		}
+
+		return result
+	}
+
+	return newError("unsuported function expression. %T", call.Function)
 }
 
 func evalIfExpression(expr *parser.IfExpression, env *Environment) Object {

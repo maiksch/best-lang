@@ -140,11 +140,11 @@ func (i *IfExpression) String() string {
 	out.WriteString(i.Condition.String())
 	out.WriteString(" { ")
 	out.WriteString(i.Consequence.String())
-	out.WriteString(" }")
+	out.WriteString(" } ")
 	if i.Otherwise != nil {
-		out.WriteString(" else { ")
+		out.WriteString("else { ")
 		out.WriteString(i.Otherwise.String())
-		out.WriteString(" }")
+		out.WriteString(" } ")
 	}
 
 	return out.String()
@@ -154,7 +154,7 @@ func (i *IfExpression) String() string {
 
 type FunctionLiteral struct {
 	Token      token.Token
-	Parameters []Identifier
+	Parameters []*Identifier
 	Body       *BlockStatement
 }
 

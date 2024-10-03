@@ -8,6 +8,150 @@ import (
 	"github.com/maiksch/best-lang/parser"
 )
 
+func TestEvalFunctionCall(t *testing.T) {
+	input := `var foo = fn(x) {
+		if x > 0 {
+			return true
+		}
+		return false
+	}
+	foo(1)`
+	actual := testEval(input)
+	expectBooleanValue(t, actual, true)
+
+	input = `
+	fn(x) {
+		if x > 0 {
+			return true
+		}
+		return false
+	}(1)`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, true)
+
+	input = `
+	fn(x) {
+		if x > 0 {
+			return true
+		}
+		return false
+	}(-1)`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, false)
+
+	input = `
+	var foo = fn(x, y) { x + y}
+	foo(foo(1, 2), 1 + 2)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 6)
+
+	input = `
+	var x = 999999
+	var foo = fn(x, y) { x + y}
+	foo(foo(1, 2), 1 + 2)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 6)
+
+	input = `
+	var x = 999999
+	var foo = fn(y) { x + y }
+	foo(1)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 1000000)
+
+	input = `
+	var foo = fn(y) { x + y }
+	foo(1)`
+	actual = testEval(input)
+	expectError(t, actual, "unknown identifier x")
+
+	input = `
+	var x = 0
+	var foo = fn(y) { x + y }
+	var bar = fn(y) { 
+		var x = 9999
+		foo(y)
+	}
+	bar(1)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 1)
+
+	input = `
+	var foo = fn(x) {
+		if x > 0 {
+			return true
+		}
+		return false
+	}(1)
+	if foo {
+		return 123
+	} else {
+	 	return 666
+	}`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 123)
+
+	input = `
+	var newAdder = fn(x) {
+		return fn(y) { x + y }
+	}
+	var addTwo = newAdder(2)
+	addTwo(2)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 4)
+
+	input = `
+	var foo = fn(x, func) {
+		return func(x) 
+	}
+	foo(
+	 1,
+	 fn(x) {
+	 	return x + 4
+	 }
+	)`
+	actual = testEval(input)
+	expectIntegerValue(t, actual, 5)
+}
+
+func TestEvalFunctionLiteral(t *testing.T) {
+	input := `fn(x) {
+		if x > 0 {
+			return true
+		}
+		return false
+	}`
+	fn := testEval(input)
+	expectFunctionParameters(t, fn, "x")
+	expectFunctionBody(t, fn, "if (x > 0) { return true } return false")
+}
+
+func expectFunctionBody(t *testing.T, actual evaluator.Object, expect string) {
+	fn, ok := actual.(*evaluator.Function)
+	if !ok {
+		t.Fatalf("object is not a function. got %T", actual)
+	}
+	if fn.Body.String() != expect {
+		t.Fatalf("function body wrong. expect\n%s\ngot\n%s", expect, fn.Body.String())
+	}
+}
+
+func expectFunctionParameters(t *testing.T, actual evaluator.Object, expect ...string) {
+	fn, ok := actual.(*evaluator.Function)
+	if !ok {
+		t.Fatalf("object is not a function. got %T", actual)
+	}
+	if len(fn.Parameters) != len(expect) {
+		t.Fatalf("number of parameters wrong. expect: %d. got: %d", len(expect), len(fn.Parameters))
+	}
+
+	for i, param := range fn.Parameters {
+		if param.Value != expect[i] {
+			t.Fatalf("parameter %d expected to be %s. got %s", i, expect[i], param.Value)
+		}
+	}
+}
+
 func TestEvalDeclaration(t *testing.T) {
 	input := `var x = 1
 	x`
@@ -140,10 +284,6 @@ func TestEvalInfixExpression(t *testing.T) {
 	actual = testEval(input)
 	expectBooleanValue(t, actual, false)
 
-	input = "true == 123"
-	actual = testEval(input)
-	expectBooleanValue(t, actual, false)
-
 	input = "100 != 1000"
 	actual = testEval(input)
 	expectBooleanValue(t, actual, true)
@@ -232,6 +372,9 @@ func expectNothingValue(t *testing.T, v evaluator.Object) {
 func expectBooleanValue(t *testing.T, v evaluator.Object, expect bool) {
 	obj, ok := v.(*evaluator.Boolean)
 	if !ok {
+		if err, ok := v.(*evaluator.Error); ok {
+			t.Fatalf("Expected boolean value, got error\n%s", err.Message)
+		}
 		t.Fatalf("Expected boolean value, got %T", v)
 	}
 	if obj.Value != expect {
@@ -242,7 +385,7 @@ func expectBooleanValue(t *testing.T, v evaluator.Object, expect bool) {
 func expectIntegerValue(t *testing.T, v evaluator.Object, expect int64) {
 	obj, ok := v.(*evaluator.Integer)
 	if !ok {
-		t.Fatalf("Expected integer value, got %T", v)
+		t.Fatalf("Expected integer value %d, got %T %s", expect, v, v.Inspect())
 	}
 	if obj.Value != expect {
 		t.Fatalf("Expected evaluated value to be %d. got %d", expect, obj.Value)

@@ -1,15 +1,20 @@
 package evaluator
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/maiksch/best-lang/parser"
+)
 
 type ObjectType string
 
 const (
-	INTEGER ObjectType = "INTEGER"
-	BOOLEAN ObjectType = "BOOLEAN"
-	RETURN  ObjectType = "RETURN"
-	ERROR   ObjectType = "ERROR"
-	NOTHING ObjectType = "NOTHING"
+	INTEGER  ObjectType = "INTEGER"
+	BOOLEAN  ObjectType = "BOOLEAN"
+	FUNCTION ObjectType = "FUNCTION"
+	RETURN   ObjectType = "RETURN"
+	ERROR    ObjectType = "ERROR"
+	NOTHING  ObjectType = "NOTHING"
 )
 
 type Object interface {
@@ -43,6 +48,19 @@ type Boolean struct {
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN }
 func (b *Boolean) Inspect() string  { return fmt.Sprintf("%t", b.Value) }
+
+/**
+* Function
+ */
+
+type Function struct {
+	Parameters []*parser.Identifier
+	Body       *parser.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() ObjectType { return FUNCTION }
+func (f *Function) Inspect() string  { return "FUNCTION" }
 
 /**
 * Return

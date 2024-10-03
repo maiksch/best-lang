@@ -6,6 +6,16 @@ type Environment struct {
 	identifiers map[string]Object
 }
 
+func CloneEnvironment(outer *Environment) *Environment {
+	env := NewEnvrionment()
+
+	for k, v := range outer.identifiers {
+		env.identifiers[k] = v
+	}
+
+	return env
+}
+
 func NewEnvrionment() *Environment {
 	return &Environment{
 		identifiers: make(map[string]Object),
