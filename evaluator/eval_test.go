@@ -68,7 +68,7 @@ func TestEvalFunctionCall(t *testing.T) {
 	input = `
 	var x = 0
 	var foo = fn(y) { x + y }
-	var bar = fn(y) { 
+	var bar = fn(y) {
 		var x = 9999
 		foo(y)
 	}

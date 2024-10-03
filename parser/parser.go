@@ -128,7 +128,7 @@ func (p *Parser) parseBlockStatement() *BlockStatement {
 
 	for !p.isPeekToken(token.EOF) &&
 		!p.isPeekToken(token.RBRACE) &&
-		!(p.token.Type == token.RBRACE && p.isPeekToken(token.NEWLINE)) {
+		!(p.token.Type == token.RBRACE && p.peekToken.Type == token.NEWLINE) {
 		p.nextToken()
 
 		stmt := p.parseStatement()
@@ -301,11 +301,14 @@ func (p *Parser) parseFunctionCall(left Expression) Expression {
 		Function: left,
 	}
 
+	p.skipNewline()
+
 	if p.isPeekToken(token.RPAREN) {
 		return expr
 	}
 
 	for {
+		p.skipNewline()
 		p.nextToken()
 		arg := p.parseExpression(LOWEST)
 		expr.Arguments = append(expr.Arguments, arg)
@@ -314,6 +317,8 @@ func (p *Parser) parseFunctionCall(left Expression) Expression {
 			break
 		}
 	}
+
+	p.skipNewline()
 
 	if !p.isPeekToken(token.RPAREN) {
 		log.Println("function call: closing ) missing")
@@ -380,6 +385,12 @@ func (p *Parser) assertNextToken(t token.TokenType) {
 		log.Panicf("invalid syntax. Expected %q but got %q", t, p.peekToken.Type)
 	}
 	p.nextToken()
+}
+
+func (p *Parser) skipNewline() {
+	if p.peekToken.Type == token.NEWLINE {
+		p.nextToken()
+	}
 }
 
 func (p *Parser) isPeekToken(t token.TokenType) bool {

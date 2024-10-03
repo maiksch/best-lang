@@ -8,6 +8,18 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestLineBreaks3(t *testing.T) {
+	input := `
+var foo = fn(x, func) { return func(x) }
+foo(1, fn(){})
+`
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	t.Log(p.String())
+}
+
 func TestLineBreaks2(t *testing.T) {
 	input := `fn(x, func) { return func(x) }`
 
@@ -42,6 +54,29 @@ func expectIfExpression(t *testing.T, actual *parser.ExpressionStatement) *parse
 		t.Fatalf("expression is not an IfExpression. got %T", actual)
 	}
 	return expr
+}
+
+func TestFunctionCall2(t *testing.T) {
+	input := `
+foo(
+ 1,
+ fn(x) {
+ 	return x + 4
+ }
+)
+`
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	stmt := expectExpressionStatement(t, p.Statements[0])
+	fnCall, ok := stmt.Value.(*parser.FunctionCall)
+	if !ok {
+		t.Fatalf("expression is not an FunctionCall. got %T", stmt.Value)
+	}
+	if len(fnCall.Arguments) != 2 {
+		t.Fatalf("amount of parameters wrong. expected %v but got %v", 2, len(fnCall.Arguments))
+	}
 }
 
 func TestFunctionCall(t *testing.T) {
@@ -226,7 +261,7 @@ func TestToString(t *testing.T) {
 	}
 
 	result := input.String()
-	expect := "foo := bar"
+	expect := "var foo = bar"
 
 	if result != expect {
 		t.Fatalf("String() failed.\n\texpected:%q\n\tgot:%q", expect, result)
