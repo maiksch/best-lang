@@ -89,7 +89,7 @@ func (p *Parser) registerInfix(token token.TokenType, fn infixParseFn) {
 func (p *Parser) nextToken() {
 	p.token = p.peekToken
 	p.peekToken = p.lexer.NextToken()
-	log.Printf("%s %s\n", p.token.Type, p.token.Literal)
+	// log.Printf("%s %s\n", p.token.Type, p.token.Literal)
 }
 
 func (p *Parser) ParseProgram() *Program {

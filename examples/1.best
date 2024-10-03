@@ -1,8 +1,11 @@
-five := 5
-ten := 10
+var five = 5
+var ten = 10
 
-fn add(x, y) {
-  x + y
+var calc = fn(x, y) {
+  if x > y {
+    return x * y
+  }
+  return x + y
 }
 
-result := add(five, ten)
+calc(ten, five)
