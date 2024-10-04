@@ -68,6 +68,15 @@ func (l *Lexer) readChar() byte {
 	return l.input[l.position]
 }
 
+func (l *Lexer) readString() string {
+	stringVal := ""
+	for l.peekChar() != '"' {
+		stringVal += string(l.readChar())
+	}
+	l.readChar()
+	return stringVal
+}
+
 func (l *Lexer) peekChar() byte {
 	position := l.position + 1
 	if position >= len(l.input) {
@@ -84,7 +93,11 @@ func (l *Lexer) NextToken() token.Token {
 	}
 
 	if ch == 0 {
-		return token.Token{Type: token.EOF, Literal: "EOF"}
+		return token.Token{Type: token.EOF}
+	}
+
+	if ch == '"' {
+		return token.Token{Type: token.STRING, Literal: l.readString()}
 	}
 
 	if t, ok := token.Symbols[ch]; ok {

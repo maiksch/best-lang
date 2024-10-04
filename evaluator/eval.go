@@ -53,6 +53,9 @@ func Eval(node parser.Node, env *Environment) Object {
 	case *parser.IntegerLiteral:
 		return &Integer{Value: node.Value}
 
+	case *parser.StringLiteral:
+		return &String{Value: node.Value}
+
 	case *parser.BooleanLiteral:
 		return toBooleanObject(node.Value)
 
@@ -149,6 +152,22 @@ func evalInfixExpression(expr *parser.InfixExpression, env *Environment) Object 
 		}
 	}
 
+	if left.Type() == STRING && right.Type() == STRING {
+		l := left.(*String).Value
+		r := right.(*String).Value
+
+		switch expr.Operator {
+		case "==":
+			return toBooleanObject(l == r)
+
+		case "!=":
+			return toBooleanObject(l != r)
+
+		case "+":
+			return &String{Value: l + r}
+		}
+	}
+
 	if left.Type() == BOOLEAN && right.Type() == BOOLEAN {
 		switch expr.Operator {
 		case "==":
@@ -157,6 +176,14 @@ func evalInfixExpression(expr *parser.InfixExpression, env *Environment) Object 
 		case "!=":
 			return toBooleanObject(left != right)
 		}
+	}
+
+	if expr.Operator == "==" {
+		return FALSE
+	}
+
+	if expr.Operator == "!=" {
+		return TRUE
 	}
 
 	return newError("operator type mismatch. %s %s %s", left.Type(), expr.Operator, right.Type())

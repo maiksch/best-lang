@@ -8,6 +8,23 @@ import (
 	"github.com/maiksch/best-lang/token"
 )
 
+func TestStrings(t *testing.T) {
+	input := `"foo bar"`
+	expect := "foo bar"
+
+	l := lexer.New(input)
+	p := parser.New(l).ParseProgram()
+
+	exprStmt := expectExpressionStatement(t, p.Statements[0])
+	expr, ok := exprStmt.Value.(*parser.StringLiteral)
+	if !ok {
+		t.Fatalf("expression is not an StringLiteral. got %T", exprStmt.Value)
+	}
+	if expr.Value != expect {
+		t.Fatalf("string literal wrong. expected %s got %s", expect, expr.Value)
+	}
+}
+
 func TestLineBreaks3(t *testing.T) {
 	input := `
 var foo = fn(x, func) { return func(x) }

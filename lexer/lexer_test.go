@@ -27,6 +27,19 @@ func TestKeywords(t *testing.T) {
 	runAndExpect(t, input, tests)
 }
 
+func TestStringLiteral(t *testing.T) {
+	input := `"test"
+	"foo bar"`
+
+	tests := []expectation{
+		{token.STRING, "test"},
+		{token.NEWLINE, ""},
+		{token.STRING, "foo bar"},
+	}
+
+	runAndExpect(t, input, tests)
+}
+
 func TestBasicProgram(t *testing.T) {
 	input := `var five = 5
 var ten = 10
@@ -35,20 +48,21 @@ fn add(x, y) {
   return x + y
 }
 
-var result = add(five, ten)`
+var result = add(five, ten)
+"test"`
 
 	tests := []expectation{
 		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "five"},
 		{token.ASSIGN, "="},
 		{token.INTEGER, "5"},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
 		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "ten"},
 		{token.ASSIGN, "="},
 		{token.INTEGER, "10"},
-		{token.NEWLINE, "\n"},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.FUNCTION, "fn"},
 		{token.IDENTIFIER, "add"},
 		{token.LPAREN, "("},
@@ -57,15 +71,15 @@ var result = add(five, ten)`
 		{token.IDENTIFIER, "y"},
 		{token.RPAREN, ")"},
 		{token.LBRACE, "{"},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
 		{token.RETURN, "return"},
 		{token.IDENTIFIER, "x"},
 		{token.PLUS, "+"},
 		{token.IDENTIFIER, "y"},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
 		{token.RBRACE, "}"},
-		{token.NEWLINE, "\n"},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
+		{token.NEWLINE, ""},
 		{token.VARIABLE, "var"},
 		{token.IDENTIFIER, "result"},
 		{token.ASSIGN, "="},
@@ -75,6 +89,7 @@ var result = add(five, ten)`
 		{token.KOMMA, ","},
 		{token.IDENTIFIER, "ten"},
 		{token.RPAREN, ")"},
+		{token.NEWLINE, ""},
 		{token.EOF, ""},
 	}
 
@@ -128,7 +143,7 @@ func TestSymbols(t *testing.T) {
 		{token.LT, "<"},
 		{token.GT, ">"},
 		{token.NOT_EQUAL, "!="},
-		{token.NEWLINE, "\n"},
+		{token.NEWLINE, ""},
 		{token.EOF, ""},
 	}
 

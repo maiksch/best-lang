@@ -7,6 +7,7 @@ const (
 	EOF        = "EOF"
 	IDENTIFIER = "IDENTIFIER"
 	INTEGER    = "INTEGER"
+	STRING     = "STRING"
 
 	// Symbols
 	ASSIGN  = "="

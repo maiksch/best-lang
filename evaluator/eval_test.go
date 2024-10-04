@@ -204,16 +204,9 @@ func TestEvalErrorHandling(t *testing.T) {
 	actual = testEval(input)
 	expectError(t, actual, "operator type mismatch. INTEGER + BOOLEAN")
 
-	input = `
-	if 2 == true {
-		return 2
-	}`
+	input = `123 + "foo"`
 	actual = testEval(input)
-	expectError(t, actual, "operator type mismatch. INTEGER == BOOLEAN")
-
-	input = `!(1 == true)`
-	actual = testEval(input)
-	expectError(t, actual, "operator type mismatch. INTEGER == BOOLEAN")
+	expectError(t, actual, "operator type mismatch. INTEGER + STRING")
 
 	input = `x`
 	actual = testEval(input)
@@ -307,6 +300,10 @@ func TestEvalInfixExpression(t *testing.T) {
 	input = "1 * 123 == 123"
 	actual = testEval(input)
 	expectBooleanValue(t, actual, true)
+
+	input = `123 == "123"`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, false)
 }
 
 func TestEvalBooleanLiteral(t *testing.T) {
@@ -323,6 +320,24 @@ func TestEvalBooleanLiteral(t *testing.T) {
 	expectBooleanValue(t, actual, false)
 
 	input = "!false"
+	actual = testEval(input)
+	expectBooleanValue(t, actual, true)
+}
+
+func TestEvalStringLitearl(t *testing.T) {
+	input := `"foo bar"`
+	actual := testEval(input)
+	expectStringValue(t, actual, "foo bar")
+
+	input = `"foo" + " " + "bar"`
+	actual = testEval(input)
+	expectStringValue(t, actual, "foo bar")
+
+	input = `"foo bar" == "foo" + " " + "bar"`
+	actual = testEval(input)
+	expectBooleanValue(t, actual, true)
+
+	input = `"foo bar" != "baz"`
 	actual = testEval(input)
 	expectBooleanValue(t, actual, true)
 }
@@ -379,6 +394,16 @@ func expectBooleanValue(t *testing.T, v evaluator.Object, expect bool) {
 	}
 	if obj.Value != expect {
 		t.Fatalf("Expected evaluated value to be %t. got %t", expect, obj.Value)
+	}
+}
+
+func expectStringValue(t *testing.T, v evaluator.Object, expect string) {
+	obj, ok := v.(*evaluator.String)
+	if !ok {
+		t.Fatalf("Expected string value %s, got %T %s", expect, v, v.Inspect())
+	}
+	if obj.Value != expect {
+		t.Fatalf("Expected evaluated value to be %s. got %s", expect, obj.Value)
 	}
 }
 
